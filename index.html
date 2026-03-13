@@ -26,6 +26,14 @@
 
       const PASSWORD = "lucky";
       const ALLOWED_LOGINS = ["admin", "danil13", "taxa07", "timyr2", "kamran4"];
+      const USER_PROFILES = {
+        admin: { label: "Administrator", badgeClass: "profile-admin" },
+        danil13: { label: "Pro User", badgeClass: "profile-pro" },
+        taxa07: { label: "Pro User", badgeClass: "profile-pro" },
+        timyr2: { label: "Analyst", badgeClass: "profile-analyst" },
+        kamran4: { label: "Analyst", badgeClass: "profile-analyst" },
+        "1": { label: "Test Mode", badgeClass: "profile-test" },
+      };
 
       function SplashScreen() {
         return (
@@ -239,8 +247,23 @@
         onGetPrediction,
         hasQueue,
         username,
+        logLines,
       }) {
         const [statusReady, setStatusReady] = useState(false);
+        const [ping, setPing] = useState(34);
+
+        useEffect(() => {
+          const interval = setInterval(() => {
+            setPing((prev) => {
+              const delta = Math.round((Math.random() - 0.5) * 8);
+              let next = prev + delta;
+              if (next < 22) next = 22;
+              if (next > 85) next = 85;
+              return next;
+            });
+          }, 1800);
+          return () => clearInterval(interval);
+        }, []);
 
         useEffect(() => {
           const id = setTimeout(() => setStatusReady(true), 5500);
@@ -251,6 +274,21 @@
           currentCoef != null ? currentCoef.toFixed(2) + "x" : "--";
         const coefClass =
           currentCoef != null ? getCoefClass(currentCoef) : "coef-empty";
+
+        let signalLabel = "Нет сигнала";
+        let confidence = 20;
+        if (currentCoef != null) {
+          if (currentCoef < 2) {
+            signalLabel = "Conservative";
+            confidence = 55;
+          } else if (currentCoef < 10) {
+            signalLabel = "Normal";
+            confidence = 72;
+          } else {
+            signalLabel = "High‑Risk";
+            confidence = 38;
+          }
+        }
 
         return (
           <div className="full-screen center main-background">
@@ -270,6 +308,12 @@
                 </div>
                 <StatusPill ready={statusReady} />
               </header>
+              <div className="server-strip">
+                <span className="server-name">Сервер: LuckyJet-EU</span>
+                <span className="server-meta">
+                  Пинг: <span className="server-ping">{ping} ms</span>
+                </span>
+              </div>
 
               <main className="card-body analyzer-body">
                 <div className="display-wrapper">
@@ -278,6 +322,16 @@
                   </div>
                   <div className="display-caption">
                     Текущий «предсказанный» коэффициент
+                  </div>
+                  <div className="signal-row">
+                    <span className="signal-label">{signalLabel}</span>
+                    <div className="confidence-bar">
+                      <div
+                        className="confidence-fill"
+                        style={{ width: confidence + "%" }}
+                      />
+                    </div>
+                    <span className="confidence-value">{confidence}%</span>
                   </div>
                 </div>
 
@@ -290,6 +344,12 @@
                     >
                       <div className="radar-beam" />
                       <div className="radar-center" />
+                    </div>
+                    <div className="mini-chart">
+                      <div className="chart-bar bar-1" />
+                      <div className="chart-bar bar-2" />
+                      <div className="chart-bar bar-3" />
+                      <div className="chart-bar bar-4" />
                     </div>
                   </div>
                   <div className="scan-controls">
@@ -315,6 +375,11 @@
                   <h3 className="section-title">История последних прогнозов</h3>
                   <HistoryList history={history} />
                 </section>
+
+                <section className="log-section">
+                  <h3 className="section-title">Лог анализа</h3>
+                  <LogList lines={logLines} />
+                </section>
               </main>
             </div>
           </div>
@@ -336,6 +401,25 @@
         );
       }
 
+      function LogList({ lines }) {
+        if (!lines.length) {
+          return (
+            <div className="history-empty">
+              Лог пуст. Запустите анализ, чтобы увидеть детали.
+            </div>
+          );
+        }
+        return (
+          <ul className="log-list">
+            {lines.map((line, idx) => (
+              <li key={idx} className="log-item">
+                {line}
+              </li>
+            ))}
+          </ul>
+        );
+      }
+
       function App() {
         const [phase, setPhase] = useState("splash"); // splash | password | searching | main
         const [currentCoef, setCurrentCoef] = useState(null);
@@ -345,6 +429,8 @@
         const [isAnalyzing, setIsAnalyzing] = useState(false);
         const [adminOpen, setAdminOpen] = useState(false);
         const [username, setUsername] = useState("");
+        const [userProfile, setUserProfile] = useState(null);
+        const [logLines, setLogLines] = useState([]);
 
         useEffect(() => {
           const id = setTimeout(() => setPhase("password"), 2000);
@@ -360,6 +446,9 @@
 
         const handlePasswordSuccess = (loginName) => {
           setUsername(loginName);
+          setUserProfile(
+            USER_PROFILES[loginName] || { label: "User", badgeClass: "profile-default" }
+          );
           setPhase("searching");
         };
 
@@ -371,9 +460,22 @@
           setQueue(parsed);
         };
 
+        const addLog = (text) => {
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, "0");
+          const mm = String(now.getMinutes()).padStart(2, "0");
+          const ss = String(now.getSeconds()).padStart(2, "0");
+          const line = `[${hh}:${mm}:${ss}] ${text}`;
+          setLogLines((prev) => [line, ...prev].slice(0, 6));
+        };
+
         const handleGetPrediction = () => {
           if (isAnalyzing) return;
           setIsAnalyzing(true);
+          addLog("Запуск анализа текущей сессии Lucky Jet...");
+          if (userProfile && userProfile.badgeClass === "profile-admin") {
+            addLog("DEBUG: Сбор телеметрии (latency, seed, окно истории)...");
+          }
           const duration = 3500;
           setTimeout(() => {
             setQueue((prev) => {
@@ -389,6 +491,7 @@
               if (nextCoef != null) {
                 setCurrentCoef(nextCoef);
                 setHistory((h) => [nextCoef, ...h].slice(0, 5));
+                addLog(`Получен прогноз: ${nextCoef.toFixed(2)}x (модуль LuckyCore v2)`);
               }
 
               setIsAnalyzing(false);
@@ -413,9 +516,20 @@
                 isAnalyzing={isAnalyzing}
                 onGetPrediction={handleGetPrediction}
                 hasQueue={queue.length > 0}
+                username={username}
+                logLines={logLines}
               />
               <div className="top-right-user">
-                <span className="user-label">{username}</span>
+                <span
+                  className={
+                    "user-label " + (userProfile ? userProfile.badgeClass : "profile-default")
+                  }
+                >
+                  {username}
+                  {userProfile && userProfile.label
+                    ? " • " + userProfile.label
+                    : ""}
+                </span>
                 <button
                   className="admin-toggle"
                   onClick={() => setAdminOpen((v) => !v)}
