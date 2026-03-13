@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hack Lucky Jet Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" type="image/png" href="./assets/luckyjet-icon.png" />
+    <!-- React via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      const PASSWORD = "lucky";
+
+      function SplashScreen() {
+        return (
+          <div className="full-screen center splash-background">
+            <div className="splash-card">
+              <img
+                src="./assets/luckyjet-icon.png"
+                alt="Lucky Jet Icon"
+                className="splash-icon"
+              />
+              <h1 className="splash-title">Hack Lucky Jet</h1>
+              <p className="splash-subtitle">
+                Запуск анализатора<span className="dots-loading">...</span>
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      function PasswordGate({ onSuccess }) {
+        const [value, setValue] = useState("");
+        const [error, setError] = useState(false);
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (value.trim() === PASSWORD) {
+            setError(false);
+            onSuccess();
+          } else {
+            setError(true);
+            setValue("");
+          }
+        };
+
+        return (
+          <div className="full-screen center main-background">
+            <div className={"card password-card" + (error ? " shake" : "")}>
+              <div className="card-header">
+                <img
+                  src="./assets/luckyjet-logo.png"
+                  alt="LUCKYJET"
+                  className="logo-wordmark"
+                />
+              </div>
+              <div className="card-body">
+                <h2 className="card-title">Вход в систему</h2>
+                <p className="card-description">
+                  Введите пароль для доступа к анализатору.
+                </p>
+                <form onSubmit={handleSubmit} className="password-form">
+                  <label className="input-label">
+                    Пароль
+                    <input
+                      type="password"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      className="text-input"
+                      placeholder="Введите пароль"
+                    />
+                  </label>
+                  {error && (
+                    <div className="error-text">
+                      Неверный пароль. Попробуйте ещё раз.
+                    </div>
+                  )}
+                  <button type="submit" className="primary-button">
+                    Продолжить
+                  </button>
+                </form>
+              </div>
+              <div className="card-footer-small">
+                Поиск игры<span className="dots-loading">...</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function SearchGameScreen() {
+        return (
+          <div className="full-screen center main-background">
+            <div className="card search-card">
+              <h2 className="card-title">Поиск игры Lucky Jet</h2>
+              <p className="card-description">
+                Идёт подключение к сессии казино. Подождите.
+              </p>
+              <div className="scan-wrapper">
+                <div className="scanner-circle">
+                  <div className="scanner-pulse" />
+                  <div className="scanner-dot" />
+                </div>
+              </div>
+              <div className="search-progress">
+                <div className="search-progress-bar" />
+              </div>
+              <p className="search-status">
+                Анализ соединения<span className="dots-loading">...</span>
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      function AdminPanel({ queueInputs, setQueueInputs, applyQueue }) {
+        const handleChange = (index, value) => {
+          const next = [...queueInputs];
+          next[index] = value;
+          setQueueInputs(next);
+        };
+
+        return (
+          <div className="admin-panel">
+            <h3 className="admin-title">Admin Panel</h3>
+            <p className="admin-desc">
+              Введите до 5 следующих коэффициентов, например 1.85 или 12.3.
+            </p>
+            <div className="admin-inputs">
+              {queueInputs.map((v, i) => (
+                <input
+                  key={i}
+                  className="text-input admin-input"
+                  placeholder={"Прогноз " + (i + 1)}
+                  value={v}
+                  onChange={(e) => handleChange(i, e.target.value)}
+                />
+              ))}
+            </div>
+            <button className="secondary-button" onClick={applyQueue}>
+              Сохранить прогнозы
+            </button>
+          </div>
+        );
+      }
+
+      function HistoryList({ history }) {
+        if (!history.length) {
+          return (
+            <div className="history-empty">
+              История пуста. Получите первый прогноз.
+            </div>
+          );
+        }
+        return (
+          <ul className="history-list">
+            {history.map((coef, idx) => (
+              <li key={idx} className="history-item">
+                <span className={`coef-badge ${getCoefClass(coef)}`}>
+                  {coef.toFixed(2)}x
+                </span>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+
+      function getRandomWeightedCoef() {
+        const r = Math.random();
+        let min, max;
+
+        if (r < 0.7) {
+          // 70%: 0.5 - 4
+          min = 0.5;
+          max = 4;
+        } else if (r < 0.85) {
+          // 15%: 4 - 20
+          min = 4;
+          max = 20;
+        } else if (r < 0.95) {
+          // 10%: 20 - 150
+          min = 20;
+          max = 150;
+        } else {
+          // 5%: 150 - 1000
+          min = 150;
+          max = 1000;
+        }
+
+        return min + Math.random() * (max - min);
+      }
+
+      function getCoefClass(value) {
+        if (value < 2) return "coef-low";
+        if (value < 10) return "coef-mid";
+        return "coef-high";
+      }
+
+      function MainInterface({
+        currentCoef,
+        history,
+        isAnalyzing,
+        onGetPrediction,
+        hasQueue,
+      }) {
+        const [statusReady, setStatusReady] = useState(false);
+
+        useEffect(() => {
+          const id = setTimeout(() => setStatusReady(true), 5500);
+          return () => clearTimeout(id);
+        }, []);
+
+        const coefDisplay =
+          currentCoef != null ? currentCoef.toFixed(2) + "x" : "--";
+        const coefClass =
+          currentCoef != null ? getCoefClass(currentCoef) : "coef-empty";
+
+        return (
+          <div className="full-screen center main-background">
+            <div className="card analyzer-card">
+              <header className="card-header">
+                <div className="header-left">
+                  <img
+                    src="./assets/luckyjet-icon.png"
+                    alt="Lucky Jet"
+                    className="header-icon"
+                  />
+                  <img
+                    src="./assets/luckyjet-logo.png"
+                    alt="LUCKYJET"
+                    className="logo-wordmark header-wordmark"
+                  />
+                </div>
+                <StatusPill ready={statusReady} />
+              </header>
+
+              <main className="card-body analyzer-body">
+                <div className="display-wrapper">
+                  <div className={`coef-display ${coefClass}`}>
+                    {coefDisplay}
+                  </div>
+                  <div className="display-caption">
+                    Текущий «предсказанный» коэффициент
+                  </div>
+                </div>
+
+                <div className="scan-section">
+                  <div className="scan-visual">
+                    <div
+                      className={
+                        "radar-circle " + (isAnalyzing ? "radar-active" : "")
+                      }
+                    >
+                      <div className="radar-beam" />
+                      <div className="radar-center" />
+                    </div>
+                  </div>
+                  <div className="scan-controls">
+                    <button
+                      className={
+                        "primary-button wide-button " +
+                        (isAnalyzing ? "disabled" : "")
+                      }
+                      onClick={onGetPrediction}
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? "Анализ игры..." : "Получить прогноз"}
+                    </button>
+                    {isAnalyzing && (
+                      <div className="progress-bar">
+                        <div className="progress-fill" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <section className="history-section">
+                  <h3 className="section-title">История последних прогнозов</h3>
+                  <HistoryList history={history} />
+                </section>
+              </main>
+            </div>
+          </div>
+        );
+      }
+
+      function StatusPill({ ready }) {
+        return (
+          <div
+            className={
+              "status-pill " + (ready ? "status-ready" : "status-pending")
+            }
+          >
+            <span className="status-dot" />
+            <span className="status-text">
+              {ready ? "Система готова" : "Настройка системы"}
+            </span>
+          </div>
+        );
+      }
+
+      function App() {
+        const [phase, setPhase] = useState("splash"); // splash | password | searching | main
+        const [currentCoef, setCurrentCoef] = useState(null);
+        const [history, setHistory] = useState([]);
+        const [queue, setQueue] = useState([]);
+        const [queueInputs, setQueueInputs] = useState(["", "", "", "", ""]);
+        const [isAnalyzing, setIsAnalyzing] = useState(false);
+        const [adminOpen, setAdminOpen] = useState(false);
+
+        useEffect(() => {
+          const id = setTimeout(() => setPhase("password"), 2000);
+          return () => clearTimeout(id);
+        }, []);
+
+        useEffect(() => {
+          if (phase === "searching") {
+            const id = setTimeout(() => setPhase("main"), 7500);
+            return () => clearTimeout(id);
+          }
+        }, [phase]);
+
+        const handlePasswordSuccess = () => {
+          setPhase("searching");
+        };
+
+        const applyQueue = () => {
+          const parsed = queueInputs
+            .map((v) => parseFloat(v.replace(",", ".")))
+            .filter((n) => !Number.isNaN(n) && n > 0)
+            .slice(0, 5);
+          setQueue(parsed);
+        };
+
+        const handleGetPrediction = () => {
+          if (isAnalyzing) return;
+          setIsAnalyzing(true);
+          const duration = 3500;
+          setTimeout(() => {
+            setQueue((prev) => {
+              let nextCoef = null;
+              let rest = prev;
+
+              if (prev.length) {
+                [nextCoef, ...rest] = prev;
+              } else {
+                nextCoef = getRandomWeightedCoef();
+              }
+
+              if (nextCoef != null) {
+                setCurrentCoef(nextCoef);
+                setHistory((h) => [nextCoef, ...h].slice(0, 5));
+              }
+
+              setIsAnalyzing(false);
+              return rest;
+            });
+          }, duration);
+        };
+
+        let content = null;
+        if (phase === "splash") {
+          content = <SplashScreen />;
+        } else if (phase === "password") {
+          content = <PasswordGate onSuccess={handlePasswordSuccess} />;
+        } else if (phase === "searching") {
+          content = <SearchGameScreen />;
+        } else {
+          content = (
+            <>
+              <MainInterface
+                currentCoef={currentCoef}
+                history={history}
+                isAnalyzing={isAnalyzing}
+                onGetPrediction={handleGetPrediction}
+                hasQueue={queue.length > 0}
+              />
+              <button
+                className="admin-toggle"
+                onClick={() => setAdminOpen((v) => !v)}
+                title="Открыть админ-панель"
+              >
+                ⚙
+              </button>
+              {adminOpen && (
+                <div className="admin-container">
+                  <AdminPanel
+                    queueInputs={queueInputs}
+                    setQueueInputs={setQueueInputs}
+                    applyQueue={applyQueue}
+                  />
+                </div>
+              )}
+            </>
+          );
+        }
+
+        return content;
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
+
