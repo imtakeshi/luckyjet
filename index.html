@@ -25,6 +25,7 @@
       const { useState, useEffect } = React;
 
       const PASSWORD = "lucky";
+      const ALLOWED_LOGINS = ["admin", "danil13", "taxa07", "timyr2", "kamran4"];
 
       function SplashScreen() {
         return (
@@ -45,18 +46,26 @@
       }
 
       function PasswordGate({ onSuccess }) {
-        const [value, setValue] = useState("");
-        const [error, setError] = useState(false);
+        const [login, setLogin] = useState("");
+        const [password, setPassword] = useState("");
+        const [error, setError] = useState("");
 
         const handleSubmit = (e) => {
           e.preventDefault();
-          if (value.trim() === PASSWORD) {
-            setError(false);
-            onSuccess();
-          } else {
-            setError(true);
-            setValue("");
+          const trimmedLogin = login.trim();
+
+          if (
+            !trimmedLogin ||
+            !ALLOWED_LOGINS.includes(trimmedLogin) ||
+            password.trim() !== PASSWORD
+          ) {
+            setError("Неверный логин или пароль. Попробуйте ещё раз.");
+            setPassword("");
+            return;
           }
+
+          setError("");
+          onSuccess(trimmedLogin);
         };
 
         return (
@@ -72,22 +81,32 @@
               <div className="card-body">
                 <h2 className="card-title">Вход в систему</h2>
                 <p className="card-description">
-                  Введите пароль для доступа к анализатору.
+                  Введите логин и пароль для доступа к анализатору.
                 </p>
                 <form onSubmit={handleSubmit} className="password-form">
+                  <label className="input-label">
+                    Логин
+                    <input
+                      type="text"
+                      value={login}
+                      onChange={(e) => setLogin(e.target.value)}
+                      className="text-input"
+                      placeholder="Например, admin"
+                    />
+                  </label>
                   <label className="input-label">
                     Пароль
                     <input
                       type="password"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="text-input"
                       placeholder="Введите пароль"
                     />
                   </label>
                   {error && (
                     <div className="error-text">
-                      Неверный пароль. Попробуйте ещё раз.
+                      {error}
                     </div>
                   )}
                   <button type="submit" className="primary-button">
@@ -217,6 +236,7 @@
         isAnalyzing,
         onGetPrediction,
         hasQueue,
+        username,
       }) {
         const [statusReady, setStatusReady] = useState(false);
 
@@ -246,7 +266,10 @@
                     className="logo-wordmark header-wordmark"
                   />
                 </div>
-                <StatusPill ready={statusReady} />
+                <div className="header-right">
+                  <div className="user-label">{username}</div>
+                  <StatusPill ready={statusReady} />
+                </div>
               </header>
 
               <main className="card-body analyzer-body">
@@ -274,10 +297,10 @@
                     <button
                       className={
                         "primary-button wide-button " +
-                        (isAnalyzing ? "disabled" : "")
+                        (isAnalyzing || !statusReady ? "disabled not-ready" : "")
                       }
                       onClick={onGetPrediction}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || !statusReady}
                     >
                       {isAnalyzing ? "Анализ игры..." : "Получить прогноз"}
                     </button>
@@ -322,6 +345,7 @@
         const [queueInputs, setQueueInputs] = useState(["", "", "", "", ""]);
         const [isAnalyzing, setIsAnalyzing] = useState(false);
         const [adminOpen, setAdminOpen] = useState(false);
+        const [username, setUsername] = useState("");
 
         useEffect(() => {
           const id = setTimeout(() => setPhase("password"), 2000);
@@ -335,7 +359,8 @@
           }
         }, [phase]);
 
-        const handlePasswordSuccess = () => {
+        const handlePasswordSuccess = (loginName) => {
+          setUsername(loginName);
           setPhase("searching");
         };
 
@@ -389,6 +414,7 @@
                 isAnalyzing={isAnalyzing}
                 onGetPrediction={handleGetPrediction}
                 hasQueue={queue.length > 0}
+                username={username}
               />
               <button
                 className="admin-toggle"
