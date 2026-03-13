@@ -336,21 +336,6 @@ body {
   gap: 10px;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-label {
-  font-size: 12px;
-  color: #e5e7eb;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.6);
-}
-
 .header-icon {
   width: 34px;
   height: 34px;
@@ -586,9 +571,7 @@ body {
 }
 
 .admin-toggle {
-  position: fixed;
-  right: 14px;
-  top: 14px;
+  position: relative;
   width: 32px;
   height: 32px;
   border-radius: 999px;
@@ -601,7 +584,7 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 26px rgba(15, 23, 42, 0.9);
-  z-index: 30;
+  z-index: 1;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
 }
 
@@ -616,6 +599,25 @@ body {
   top: 54px;
   width: min(320px, 92vw);
   z-index: 25;
+}
+
+.top-right-user {
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 30;
+}
+
+.user-label {
+  font-size: 12px;
+  color: #e5e7eb;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.6);
 }
 
 .admin-panel {
